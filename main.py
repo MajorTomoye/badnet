@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(description='Reproduce the basic backdoor attac
 parser.add_argument('--dataset', default='MNIST', help='Which dataset to use (MNIST or CIFAR10, default: MNIST)') #--dataset：指定要使用的数据集（默认值：MNIST）。
 parser.add_argument('--nb_classes', default=10, type=int, help='number of the classification types') #--nb_classes：分类类型的数量（默认值：10）。
 parser.add_argument('--load_local', action='store_true', help='train model or directly load model (default true, if you add this param, then load trained local model to evaluate the performance)') #--load_local：是否加载本地的预训练模型（默认行为是训练一个新模型）
+#action是指出现这个参数时执行的行为，store_true表示将load_local参数设置为true，设置store_true之后其默认值为false，只有指定了--load_local参数才会设置为true
 parser.add_argument('--loss', default='mse', help='Which loss function to use (mse or cross, default: mse)') #--loss：指定损失函数（均方误差或交叉熵，默认：均方误差）。
 parser.add_argument('--optimizer', default='sgd', help='Which optimizer to use (sgd or adam, default: sgd)') #--optimizer：选择优化器（默认值：SGD，即随机梯度下降）。
 parser.add_argument('--epochs', default=100, help='Number of epochs to train backdoor model, default: 100') #--epochs：训练的 epoch 数量（默认值：100）。
@@ -40,9 +41,19 @@ def main():
     if re.match('cuda:\d', args.device):
         cuda_num = args.device.split(':')[1]
         os.environ['CUDA_VISIBLE_DEVICES'] = cuda_num  #设置环境变量 CUDA_VISIBLE_DEVICES，确保指定的 GPU 被用于训练。
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # if you're using MBP M1, you can also use "mps" 设备会被传递给模型和数据，以决定在哪个硬件上运行（GPU 或 CPU）
+    device = torch.device("mps" if torch.mps.is_available() else "cpu") # if you're using MBP M1, you can also use "mps" 设备会被传递给模型和数据，以决定在哪个硬件上运行（GPU 或 CPU）
 
     # create related path
+    """
+    Path("./checkpoints/") 创建了一个 Path 对象，表示相对路径 ./checkpoints/。
+    mkdir(parents=True, exist_ok=True) 
+        parents=True：
+            表示如果目标路径的父目录不存在，递归创建父目录。
+            如果不设置 parents=True，当父目录不存在时，会报错。
+        exist_ok=True：
+            表示如果目录已经存在，不会报错。
+            如果不设置 exist_ok=True，并且目录已存在，调用 mkdir() 会抛出 FileExistsError 异常。
+    """
     pathlib.Path("./checkpoints/").mkdir(parents=True, exist_ok=True)
     pathlib.Path("./logs/").mkdir(parents=True, exist_ok=True)  #这两行代码确保 checkpoints 和 logs 目录存在，用于存储模型检查点和日志文件，mkdir(parents=True, exist_ok=True) 保证递归创建父目录，并且如果目录已经存在，不会抛出错误。
 

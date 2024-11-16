@@ -71,16 +71,18 @@ def build_transform(dataset):
         mean, std = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
     elif dataset == "MNIST":
         mean, std = (0.5,), (0.5,)
+        #这里直接使用0.5作为标准化的均值和标准差，有两个原因：1.归一化之后，数据处于[0,1]，然后-0.5再除以0.5能保证一定处于[-1,1]的区间 2.CIFAR10和MNIST 是常见的图像数据集，具有较为固定的分布，在没有计算真实均值和标准差的情况下，使用 (0.5, 0.5, 0.5) 是一种简化的预处理，通常效果还不错。
     else:
         raise NotImplementedError()
 
     transform = transforms.Compose([
-        transforms.ToTensor(), #transforms.ToTensor()：将图像从 PIL 或 NumPy 格式转换为 torch.Tensor，并简单将像素值缩放到 [0, 1] 范围，并不归一化。
-        transforms.Normalize(mean, std) #根据指定的均值和标准差对图像进行归一化处理。归一化操作是通过将每个通道的像素值减去均值并除以标准差来完成的，使输入数据有零均值和单位方差，即输入数据的分布尽量对称，数值范围合理。这有助于在训练神经网络时稳定数值范围。
+        transforms.ToTensor(), #transforms.ToTensor()：将图像从 PIL 或 NumPy 格式转换为 torch.Tensor，并简单将像素值缩放到 [0, 1] 范围，完成归一化。
+        transforms.Normalize(mean, std) #根据指定的均值和标准差对图像进行标准化处理。标准化操作是通过将每个通道的像素值减去均值并除以标准差来完成的，使输入数据有零均值和单位方差，即输入数据的分布尽量对称，数值范围合理。这有助于在训练神经网络时稳定数值范围。
         ])
-    #这部分代码用于构建逆归一化操作，即将已经归一化的图像转换回原始的像素范围。
-    mean = torch.as_tensor(mean) #将均值和标准差转换为 torch.Tensor 格式
+    #这部分代码用于构建逆标准化操作，即将已经标准化的图像转换回原始的像素范围。
+    mean = torch.as_tensor(mean) #将均值和标准差转换为 torch.Tensor 格式 
     std = torch.as_tensor(std)
-    detransform = transforms.Normalize((-mean / std).tolist(), (1.0 / std).tolist()) # 该操作用于逆归一化，将归一化的像素值转换回原始像素值的公式。归一化公式是 x' = (x - mean) / std，逆操作是 x = x' * std + mean，通过这个公式我们可以将图像恢复到原始状态。
+    detransform = transforms.Normalize((-mean / std).tolist(), (1.0 / std).tolist()) # 该操作用于逆标准化，将标准化的像素值转换回原始像素值的公式。标准化公式是 x' = (x - mean) / std，逆操作是 x = x' * std + mean，通过这个公式我们可以将图像恢复到原始状态。
+    #逆标准化之后不需要再逆归一化，因为很多图像库都能处理[0,1]的数据了
     
     return transform, detransform #返回torchvision.transforms.Compose 类型的对象。Compose 是一个用于组合多个图像变换操作的类，它将一系列变换函数组合起来按顺序执行。
